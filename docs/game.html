@@ -36,60 +36,61 @@
     <button id="home">ホームに戻る</button>
   </div>
 
-  <script>
-// ========== お題データ ==========
+<script>
+// ========== お題データ（黒線のみ） ==========
 const levels = {
   easy: [
-    {type:"circle",   x:190, y:240, r:110, color:"#e74c3c"},
-    {type:"rect",     x:190, y:240, w:220, h:220, color:"#3498db"},
-    {type:"triangle", x:190, y:240, size:180, color:"#2ecc71"}
+    {type:"circle",   x:190, y:240, r:110, color:"#000000", lineWidth:6},
+    {type:"rect",     x:190, y:240, w:220, h:220, color:"#000000", lineWidth:6},
+    {type:"triangle", x:190, y:240, size:180, color:"#000000", lineWidth:6}
   ],
   medium: [
-    {type:"circle",   x:190, y:220, r:130, color:"#9b59b6"},
-    {type:"star",     x:190, y:260, r:100, points:5, color:"#f1c40f"}
+    {type:"circle",   x:190, y:220, r:130, color:"#000000", lineWidth:6},
+    {type:"star",     x:190, y:260, r:100, points:5, color:"#000000", lineWidth:6}
   ],
   hard: [
-    {type:"star",     x:190, y:240, r:140, points:5, color:"#e74c3c"},
-    {type:"circle",   x:170, y:220, r:90,  color:"#3498db", alpha:0.7},
-    {type:"rect",     x:210, y:260, w:180, h:180, color:"#2ecc71", alpha:0.6}
+    {type:"star",     x:190, y:240, r:140, points:5, color:"#000000", lineWidth:6},
+    {type:"circle",   x:170, y:220, r:90,  color:"#000000", lineWidth:6},
+    {type:"rect",     x:210, y:260, w:180, h:180, color:"#000000", lineWidth:6}
   ]
 };
 
-// ========== 描画ヘルパー ==========
+// ========== 描画ヘルパー（線のみ） ==========
 const refCanvas = document.getElementById("ref");
 const drawCanvas = document.getElementById("draw");
-const ctxRef = refCanvas.getContext("2d");
+const ctxRef  = refCanvas.getContext("2d");
 const ctxDraw = drawCanvas.getContext("2d");
 
-function drawCircle(ctx, x, y, r, color, alpha=1) {
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
+// お題の描画（塗りつぶしなし・線のみ）
+function drawCircle(ctx, x, y, r, color, lineWidth) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI*2);
-  ctx.fill();
+  ctx.stroke();
 }
 
-function drawRect(ctx, x, y, w, h, color, alpha=1) {
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
-  ctx.fillRect(x-w/2, y-h/2, w, h);
+function drawRect(ctx, x, y, w, h, color, lineWidth) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.strokeRect(x-w/2, y-h/2, w, h);
 }
 
-function drawTriangle(ctx, x, y, size, color, alpha = 1) {
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
+function drawTriangle(ctx, x, y, size, color, lineWidth) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
   ctx.beginPath();
-  const h = size * Math.sqrt(3) / 2;  // 正三角形の高さ
-  ctx.moveTo(x,          y - h);                // 上の頂点
-  ctx.lineTo(x - size/2, y + h/3);              // 左下
-  ctx.lineTo(x + size/2, y + h/3);              // 右下
+  const height = size * Math.sqrt(3) / 2;   
+  ctx.moveTo(x, y - height * 0.666);  
+  ctx.lineTo(x - size / 2, y + height * 0.333);
+  ctx.lineTo(x + size / 2, y + height * 0.333);
   ctx.closePath();
-  ctx.fill();
+  ctx.stroke();
 }
 
-function drawStar(ctx, x, y, r, points, color, alpha=1) {
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
+function drawStar(ctx, x, y, r, points, color, lineWidth) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
   ctx.beginPath();
   for (let i = 0; i < points*2; i++) {
     const angle = (Math.PI / points) * i + Math.PI/2;
@@ -97,16 +98,16 @@ function drawStar(ctx, x, y, r, points, color, alpha=1) {
     ctx.lineTo(x + Math.cos(angle)*radius, y + Math.sin(angle)*radius);
   }
   ctx.closePath();
-  ctx.fill();
+  ctx.stroke();
 }
 
 function drawShape(ctx, shape) {
-  const {type, x, y, color, alpha=1} = shape;
+  const {type, x, y, color, lineWidth = 6} = shape;
   switch(type) {
-    case "circle":   drawCircle(ctx, x, y, shape.r, color, alpha); break;
-    case "rect":     drawRect(ctx, x, y, shape.w, shape.h, color, alpha); break;
-    case "triangle": drawTriangle(ctx, x, y, shape.size, color, alpha); break;
-    case "star":     drawStar(ctx, x, y, shape.r, shape.points, color, alpha); break;
+    case "circle":   drawCircle  (ctx, x, y, shape.r,     color, lineWidth); break;
+    case "rect":     drawRect    (ctx, x, y, shape.w, shape.h, color, lineWidth); break;
+    case "triangle": drawTriangle(ctx, x, y, shape.size,  color, lineWidth); break;
+    case "star":     drawStar    (ctx, x, y, shape.r, shape.points, color, lineWidth); break;
   }
 }
 
@@ -116,41 +117,73 @@ document.getElementById("title").textContent = `難易度：${{easy:"初級",med
 
 levels[level].forEach(s => drawShape(ctxRef, s));
 
-// ========== 描画ロジック ==========
+// ========== ユーザーの描画（線でつなぐ） ==========
 let drawing = false;
+let lastX = null;
+let lastY = null;
 
 function getPos(e) {
   const rect = drawCanvas.getBoundingClientRect();
-  const clientX = e.clientX ?? e.touches[0].clientX;
-  const clientY = e.clientY ?? e.touches[0].clientY;
+  const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : null);
+  const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+  if (clientX === null || clientY === null) return null;
   return {
     x: clientX - rect.left,
     y: clientY - rect.top
   };
 }
 
-function draw(e) {
+function drawLine(e) {
   if (!drawing) return;
   e.preventDefault();
   const pos = getPos(e);
-  ctxDraw.fillStyle = "#000000";
-  ctxDraw.beginPath();
-  ctxDraw.arc(pos.x, pos.y, 10, 0, Math.PI*2);
-  ctxDraw.fill();
+  if (!pos) return;
+
+  ctxDraw.strokeStyle = "#000000";
+  ctxDraw.lineWidth = 12;          // 線の太さ（好みで変更）
+  ctxDraw.lineCap = "round";       // 線端を丸く
+  ctxDraw.lineJoin = "round";
+
+  if (lastX !== null && lastY !== null) {
+    ctxDraw.beginPath();
+    ctxDraw.moveTo(lastX, lastY);
+    ctxDraw.lineTo(pos.x, pos.y);
+    ctxDraw.stroke();
+  }
+
+  lastX = pos.x;
+  lastY = pos.y;
 }
 
-drawCanvas.addEventListener("mousedown", e=>{drawing=true; draw(e);});
-drawCanvas.addEventListener("mousemove", draw);
-drawCanvas.addEventListener("mouseup",   ()=>drawing=false);
-drawCanvas.addEventListener("mouseout",  ()=>drawing=false);
+function startDrawing(e) {
+  drawing = true;
+  const pos = getPos(e);
+  if (pos) {
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+}
 
-drawCanvas.addEventListener("touchstart", e=>{drawing=true; draw(e);});
-drawCanvas.addEventListener("touchmove",  draw);
-drawCanvas.addEventListener("touchend",   ()=>drawing=false);
+function stopDrawing() {
+  drawing = false;
+  lastX = null;
+  lastY = null;
+}
+
+// イベント登録
+drawCanvas.addEventListener("mousedown", startDrawing);
+drawCanvas.addEventListener("mousemove", drawLine);
+drawCanvas.addEventListener("mouseup", stopDrawing);
+drawCanvas.addEventListener("mouseout", stopDrawing);
+
+drawCanvas.addEventListener("touchstart", startDrawing);
+drawCanvas.addEventListener("touchmove", drawLine);
+drawCanvas.addEventListener("touchend", stopDrawing);
+drawCanvas.addEventListener("touchcancel", stopDrawing);
 
 // ========== ボタン ==========
 document.getElementById("clear").onclick = () => {
-  ctxDraw.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  ctxDraw.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 };
 
 document.getElementById("finish").onclick = () => {
@@ -163,26 +196,37 @@ document.getElementById("home").onclick = () => {
   window.location.href = "index.html";
 };
 
-// ========== 簡易一致度計算 ==========
+// ========== 一致度計算（線なので少し甘めに） ==========
 function compareCanvases() {
-  const w = drawCanvas.width, h = drawCanvas.height;
-  const refData  = ctxRef.getImageData(0,0,w,h).data;
-  const drawData = ctxDraw.getImageData(0,0,w,h).data;
+  const w = drawCanvas.width;
+  const h = drawCanvas.height;
+  const refData  = ctxRef.getImageData(0, 0, w, h).data;
+  const drawData = ctxDraw.getImageData(0, 0, w, h).data;
   
   let score = 0;
   let total = 0;
 
   for (let i = 0; i < refData.length; i += 4) {
     const refA = refData[i+3];
-    if (refA < 20) continue;  // お題の透明部分は無視
+    if (refA < 30) continue;     // お題の線部分以外は無視
 
     total++;
+    const drawR = drawData[i];
+    const drawG = drawData[i+1];
+    const drawB = drawData[i+2];
     const drawA = drawData[i+3];
-    if (drawA > 50) score++;   // 描いた場所に何かしら塗られていればOK（色無視）
+
+    // 黒に近い色が描かれていればOK（多少のズレを許容）
+    if (drawA > 80 && drawR < 100 && drawG < 100 && drawB < 100) {
+      score++;
+    }
   }
 
-  return total > 0 ? Math.min(100, Math.round(score / total * 120)) : 0;  // 少し甘めに
+  if (total === 0) return 0;
+  // 少し寛容にして最大120%くらいまで出るように（完全一致しづらいので）
+  return Math.min(100, Math.round(score / total * 130));
 }
   </script>
+
 </body>
 </html>

@@ -1,0 +1,56 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f9f9f9;
+}
+
+.container, .game-container, .result {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.split-screen {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 30px 0;
+}
+
+.left, .right {
+  border: 2px solid #666;
+  padding: 15px;
+  border-radius: 8px;
+  background: white;
+}
+
+canvas {
+  border: 1px solid #333;
+  touch-action: none;   /* スマホ対応 */
+  background: #fff;
+}
+
+button {
+  font-size: 1.1rem;
+  padding: 12px 24px;
+  margin: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.level-buttons button, #finishBtn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+}
+
+#clearBtn {
+  background: #f44336;
+  color: white;
+}
+
+#retryBtn {
+  background: #2196F3;
+  color: white;
+}

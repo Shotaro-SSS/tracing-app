@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>模写アプリ - ゲーム</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="game-container">
+    <h2 id="level-title">難易度：初級</h2>
+    <div class="split-screen">
+      <div class="left reference">
+        <h3>お題</h3>
+        <canvas id="referenceCanvas" width="400" height="500"></canvas>
+      </div>
+      
+      <div class="right drawing">
+        <h3>あなたの描画エリア</h3>
+        <canvas id="drawCanvas" width="400" height="500"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="clearBtn">クリア</button>
+      <button id="finishBtn">完了して判定</button>
+      <button id="homeBtn">ホームに戻る</button>
+    </div>
+  </div>
+
+  <script src="js/shapes.js"></script>
+  <script src="js/compare.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

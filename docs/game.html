@@ -246,34 +246,73 @@ document.getElementById("home").onclick = () => {
 };
 
 // ========== 一致度計算 ==========
+
+// ========== 改善版：近傍許容 + 難易度別甘さ調整 ==========
 function compareCanvases() {
   const w = drawCanvas.width;
   const h = drawCanvas.height;
   const refData  = ctxRef.getImageData(0, 0, w, h).data;
   const drawData = ctxDraw.getImageData(0, 0, w, h).data;
   
-  let score = 0;
-  let total = 0;
+  let matched = 0;
+  let totalRefPixels = 0;   // お題の線ピクセル数
 
-  for (let i = 0; i < refData.length; i += 4) {
-    const refA = refData[i+3];
-    if (refA < 30) continue;
+  const tolerance = 8;      // 許容距離（ピクセル） ← これが大事！
+  const levelBonus = {      // 難易度別ボーナス倍率
+    easy:   1.5,
+    medium: 1.5,
+    hard:   1.5
+  };
+  const bonus = levelBonus[level] || 1.3;
 
-    total++;
-    const drawA = drawData[i+3];
-    const drawR = drawData[i];
-    const drawG = drawData[i+1];
-    const drawB = drawData[i+2];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const refA = refData[i + 3];
 
-    // 黒に近い & 描かれている
-    if (drawA > 80 && drawR < 90 && drawG < 90 && drawB < 90) {
-      score++;
+      if (refA < 40) continue;  // お題の線以外は無視
+      totalRefPixels++;
+
+      // このお題ピクセルの近傍（tolerance以内）をチェック
+      let found = false;
+      for (let dy = -tolerance; dy <= tolerance && !found; dy++) {
+        for (let dx = -tolerance; dx <= tolerance && !found; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+
+          const ni = (ny * w + nx) * 4;
+          const drawA = drawData[ni + 3];
+          const drawR = drawData[ni];
+          const drawG = drawData[ni + 1];
+          const drawB = drawData[ni + 2];
+
+          // 黒に近い & 十分な濃さ
+          if (drawA > 100 && drawR < 80 && drawG < 80 && drawB < 80) {
+            found = true;
+          }
+        }
+      }
+
+      if (found) {
+        matched++;
+      }
     }
   }
 
-  if (total === 0) return 0;
-  return Math.min(100, Math.round(score / total * 140));  // 初級は1つなので少し甘め
+  if (totalRefPixels === 0) return 0;
+
+  let score = (matched / totalRefPixels) * 100 * bonus;
+
+  // 上限100、最低0
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  // デバッグ用（コンソールで見たい場合）
+  // console.log(`matched: ${matched}, total: ${totalRefPixels}, raw: ${(matched/totalRefPixels*100).toFixed(1)}%, bonus: ${bonus}, final: ${score}%`);
+
+  return score;
 }
+
 </script>
 
 </body>

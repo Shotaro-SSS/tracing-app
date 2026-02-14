@@ -37,31 +37,71 @@
   </div>
 
 <script>
-// ========== お題データ（黒線のみ） ==========
-const levels = {
-  easy: [
-    {type:"circle",   x:190, y:240, r:110, color:"#000000", lineWidth:6},
-    {type:"rect",     x:190, y:240, w:220, h:220, color:"#000000", lineWidth:6},
-    {type:"triangle", x:190, y:240, size:180, color:"#000000", lineWidth:6}
-  ],
-  medium: [
-    {type:"circle",   x:190, y:220, r:130, color:"#000000", lineWidth:6},
-    {type:"star",     x:190, y:260, r:100, points:5, color:"#000000", lineWidth:6}
-  ],
-  hard: [
-    {type:"star",     x:190, y:240, r:140, points:5, color:"#000000", lineWidth:6},
-    {type:"circle",   x:170, y:220, r:90,  color:"#000000", lineWidth:6},
-    {type:"rect",     x:210, y:260, w:180, h:180, color:"#000000", lineWidth:6}
-  ]
+// ========== 図形テンプレート（基本形） ==========
+const shapeTemplates = {
+  circle:   {type: "circle",   r: 110, color: "#000000", lineWidth: 6},
+  rect:     {type: "rect",     w: 220, h: 220, color: "#000000", lineWidth: 6},
+  triangle: {type: "triangle", size: 180, color: "#000000", lineWidth: 6},
+  star:     {type: "star",     r: 100, points: 5, color: "#000000", lineWidth: 6}
 };
 
-// ========== 描画ヘルパー（線のみ） ==========
+// 難易度ごとのお題生成関数
+function generateShapes(level) {
+  const centerX = 190;
+  const centerY = 240;
+  const shapes = [];
+
+  if (level === "easy") {
+    // 初級：1つだけランダム
+    const types = ["circle", "rect", "triangle", "star"];
+    const randomType = types[Math.floor(Math.random() * types.length)];
+    const base = shapeTemplates[randomType];
+
+    // 少しサイズ・位置をランダムに揺らす（自然に見える程度）
+    const randScale = 0.9 + Math.random() * 0.2; // 90%〜110%
+    const offsetX = (Math.random() - 0.5) * 40;
+    const offsetY = (Math.random() - 0.5) * 40;
+
+    shapes.push({
+      ...base,
+      x: centerX + offsetX,
+      y: centerY + offsetY,
+      r:     base.r     ? base.r     * randScale : undefined,
+      w:     base.w     ? base.w     * randScale : undefined,
+      h:     base.h     ? base.h     * randScale : undefined,
+      size:  base.size  ? base.size  * randScale : undefined,
+      points: base.points ? base.points : undefined,
+    });
+  } 
+  else if (level === "medium") {
+    // 中級：2つ（固定パターンだが位置少しランダム）
+    const types = ["circle", "rect", "triangle", "star"];
+    const t1 = types[Math.floor(Math.random() * types.length)];
+    const t2 = types[Math.floor(Math.random() * types.length)];
+    
+    shapes.push({...shapeTemplates[t1], x: centerX - 20 + Math.random()*40, y: centerY - 30});
+    shapes.push({...shapeTemplates[t2], x: centerX + 20 + Math.random()*40, y: centerY + 30});
+  } 
+  else if (level === "hard") {
+    // 上級：3つ
+    const types = ["circle", "rect", "triangle", "star"];
+    for (let i = 0; i < 3; i++) {
+      const t = types[Math.floor(Math.random() * types.length)];
+      const offsetX = (Math.random() - 0.5) * 80;
+      const offsetY = (Math.random() - 0.5) * 80;
+      shapes.push({...shapeTemplates[t], x: centerX + offsetX, y: centerY + offsetY});
+    }
+  }
+
+  return shapes;
+}
+
+// ========== 描画ヘルパー ==========
 const refCanvas = document.getElementById("ref");
 const drawCanvas = document.getElementById("draw");
 const ctxRef  = refCanvas.getContext("2d");
 const ctxDraw = drawCanvas.getContext("2d");
 
-// お題の描画（塗りつぶしなし・線のみ）
 function drawCircle(ctx, x, y, r, color, lineWidth) {
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
@@ -73,17 +113,19 @@ function drawCircle(ctx, x, y, r, color, lineWidth) {
 function drawRect(ctx, x, y, w, h, color, lineWidth) {
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
-  ctx.strokeRect(x-w/2, y-h/2, w, h);
+  ctx.strokeRect(x - w/2, y - h/2, w, h);
 }
 
 function drawTriangle(ctx, x, y, size, color, lineWidth) {
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
-  const height = size * Math.sqrt(3) / 2;   
-  ctx.moveTo(x, y - height * 0.666);  
-  ctx.lineTo(x - size / 2, y + height * 0.333);
-  ctx.lineTo(x + size / 2, y + height * 0.333);
+  
+  const h = size * Math.sqrt(3) / 2;  // 正三角形の高さ
+  
+  ctx.moveTo(x,         y - h * 2/3);
+  ctx.lineTo(x - size/2, y + h / 3);
+  ctx.lineTo(x + size/2, y + h / 3);
   ctx.closePath();
   ctx.stroke();
 }
@@ -92,10 +134,10 @@ function drawStar(ctx, x, y, r, points, color, lineWidth) {
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
-  for (let i = 0; i < points*2; i++) {
-    const angle = (Math.PI / points) * i + Math.PI/2;
-    const radius = (i % 2 === 0) ? r : r*0.4;
-    ctx.lineTo(x + Math.cos(angle)*radius, y + Math.sin(angle)*radius);
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (Math.PI / points) * i - Math.PI / 2;
+    const radius = (i % 2 === 0) ? r : r * 0.4;
+    ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
   }
   ctx.closePath();
   ctx.stroke();
@@ -113,19 +155,22 @@ function drawShape(ctx, shape) {
 
 // ========== ゲーム初期化 ==========
 const level = localStorage.getItem("level") || "easy";
-document.getElementById("title").textContent = `難易度：${{easy:"初級",medium:"中級",hard:"上級"}[level]}`;
+const levelNames = {easy: "初級", medium: "中級", hard: "上級"};
+document.getElementById("title").textContent = `難易度：${levelNames[level]}`;
 
-levels[level].forEach(s => drawShape(ctxRef, s));
+// お題を生成して描画
+const currentShapes = generateShapes(level);
+currentShapes.forEach(s => drawShape(ctxRef, s));
 
-// ========== ユーザーの描画（線でつなぐ） ==========
+// ========== ユーザーの描画（線） ==========
 let drawing = false;
 let lastX = null;
 let lastY = null;
 
 function getPos(e) {
   const rect = drawCanvas.getBoundingClientRect();
-  const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : null);
-  const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+  const clientX = e.clientX ?? (e.touches?.[0]?.clientX ?? null);
+  const clientY = e.clientY ?? (e.touches?.[0]?.clientY ?? null);
   if (clientX === null || clientY === null) return null;
   return {
     x: clientX - rect.left,
@@ -140,8 +185,8 @@ function drawLine(e) {
   if (!pos) return;
 
   ctxDraw.strokeStyle = "#000000";
-  ctxDraw.lineWidth = 12;          // 線の太さ（好みで変更）
-  ctxDraw.lineCap = "round";       // 線端を丸く
+  ctxDraw.lineWidth = 12;
+  ctxDraw.lineCap = "round";
   ctxDraw.lineJoin = "round";
 
   if (lastX !== null && lastY !== null) {
@@ -161,6 +206,11 @@ function startDrawing(e) {
   if (pos) {
     lastX = pos.x;
     lastY = pos.y;
+    // 最初の一筆も描く（点にならないように）
+    ctxDraw.beginPath();
+    ctxDraw.arc(pos.x, pos.y, 6, 0, Math.PI*2);
+    ctxDraw.fillStyle = "#000";
+    ctxDraw.fill();
   }
 }
 
@@ -170,7 +220,6 @@ function stopDrawing() {
   lastY = null;
 }
 
-// イベント登録
 drawCanvas.addEventListener("mousedown", startDrawing);
 drawCanvas.addEventListener("mousemove", drawLine);
 drawCanvas.addEventListener("mouseup", stopDrawing);
@@ -196,7 +245,7 @@ document.getElementById("home").onclick = () => {
   window.location.href = "index.html";
 };
 
-// ========== 一致度計算（線なので少し甘めに） ==========
+// ========== 一致度計算 ==========
 function compareCanvases() {
   const w = drawCanvas.width;
   const h = drawCanvas.height;
@@ -208,25 +257,24 @@ function compareCanvases() {
 
   for (let i = 0; i < refData.length; i += 4) {
     const refA = refData[i+3];
-    if (refA < 30) continue;     // お題の線部分以外は無視
+    if (refA < 30) continue;
 
     total++;
+    const drawA = drawData[i+3];
     const drawR = drawData[i];
     const drawG = drawData[i+1];
     const drawB = drawData[i+2];
-    const drawA = drawData[i+3];
 
-    // 黒に近い色が描かれていればOK（多少のズレを許容）
-    if (drawA > 80 && drawR < 100 && drawG < 100 && drawB < 100) {
+    // 黒に近い & 描かれている
+    if (drawA > 80 && drawR < 90 && drawG < 90 && drawB < 90) {
       score++;
     }
   }
 
   if (total === 0) return 0;
-  // 少し寛容にして最大120%くらいまで出るように（完全一致しづらいので）
-  return Math.min(100, Math.round(score / total * 130));
+  return Math.min(100, Math.round(score / total * 140));  // 初級は1つなので少し甘め
 }
-  </script>
+</script>
 
 </body>
 </html>
